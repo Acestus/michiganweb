@@ -41,6 +41,14 @@ body {
   padding-bottom: 0.4rem;
 }
 
+.story ul {
+  padding-left: 1.2rem;
+}
+
+.story li {
+  margin: 0.35rem 0;
+}
+
 .gallery {
   margin: 3rem 0;
 }

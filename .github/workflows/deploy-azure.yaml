@@ -3,38 +3,34 @@ name: Deploy Azure
 on:
   workflow_dispatch:
     inputs:
-      environment:
-        description: "Target environment"
-        required: true
-        type: choice
-        options:
-          - dev
-          - prd
       resource_group:
         description: "Azure resource group name"
         required: true
         type: string
+        default: "rg-michiganweb"
       location:
         description: "Azure location (example: westus2)"
         required: true
         type: string
+        default: "westus2"
       static_web_app_name:
         description: "Static Web App resource name"
         required: true
         type: string
+        default: "swa-michiganweb-dev-001"
 
 permissions:
   id-token: write
   contents: read
 
 concurrency:
-  group: michiganweb-deploy-${{ inputs.environment }}
+  group: michiganweb-deploy
   cancel-in-progress: false
 
 jobs:
   deploy:
     runs-on: ubuntu-24.04
-    environment: ${{ inputs.environment }}
+    environment: dev
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -54,7 +50,7 @@ jobs:
             az deployment group create \
               --resource-group "${{ inputs.resource_group }}" \
               --template-file infra/main.bicep \
-              --parameters "infra/${{ inputs.environment }}/main.${{ inputs.environment }}.bicepparam" \
+              --parameters "infra/dev/main.dev.bicepparam" \
               --parameters location="${{ inputs.location }}"
 
       - name: Setup Node
