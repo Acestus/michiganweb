@@ -1,0 +1,108 @@
+name: Deploy Azure
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        type: choice
+        options:
+          - dev
+          - prd
+      resource_group:
+        description: "Azure resource group name"
+        required: true
+        type: string
+      location:
+        description: "Azure location (example: westus2)"
+        required: true
+        type: string
+      static_web_app_name:
+        description: "Static Web App resource name"
+        required: true
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: michiganweb-deploy-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy infrastructure (Bicep)
+        uses: azure/CLI@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            az deployment group create \
+              --resource-group "${{ inputs.resource_group }}" \
+              --template-file infra/main.bicep \
+              --parameters "infra/${{ inputs.environment }}/main.${{ inputs.environment }}.bicepparam" \
+              --parameters location="${{ inputs.location }}"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: src/Web/package-lock.json
+
+      - name: Build frontend app
+        run: |
+          npm --prefix src/Web ci
+          npm --prefix src/Web run build
+
+      - name: Get Static Web Apps deployment token
+        id: swa-token
+        uses: azure/CLI@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            TOKEN=$(az staticwebapp secrets list \
+              --name "${{ inputs.static_web_app_name }}" \
+              --resource-group "${{ inputs.resource_group }}" \
+              --query properties.apiKey -o tsv)
+            echo "::add-mask::$TOKEN"
+            echo "token=$TOKEN" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy frontend app
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ steps.swa-token.outputs.token }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: upload
+          app_location: src/Web/dist
+          output_location: ""
+          skip_app_build: true
+
+      - name: Resolve Static Web Apps URL
+        id: swa-url
+        uses: azure/CLI@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            HOSTNAME=$(az staticwebapp show \
+              --name "${{ inputs.static_web_app_name }}" \
+              --resource-group "${{ inputs.resource_group }}" \
+              --query defaultHostname -o tsv)
+            echo "site_url=https://$HOSTNAME" >> "$GITHUB_OUTPUT"
+
+      - name: Print deployed URL
+        run: echo "Deployed to ${{ steps.swa-url.outputs.site_url }}"
