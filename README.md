@@ -1,6 +1,6 @@
 # michiganweb
 
-`michigan.acestus.com` — Michigan trip vacation info page (August 12–19, 2026,
+`michigan2026.bluegreen.love` — Michigan trip vacation info page (August 12–19, 2026,
 Oscoda, MI).
 
 Static Vite + TypeScript site deployed to an Azure Static Web App (Free SKU),
@@ -48,10 +48,10 @@ npm run dev
    This provisions the Bicep template (Free SKU SWA), builds the Vite site,
    and uploads it via `Azure/static-web-apps-deploy@v1`.
 
-3. **Custom domain (michigan.acestus.com):**
+3. **Custom domain (michigan2026.bluegreen.love):**
    - At Hover, add a `CNAME` record: `michigan` → `<swa-default-hostname>.azurestaticapps.net`.
    - Once the CNAME resolves, the `customDomain` resource in `main.bicep`
-     (already parameterized with `michigan.acestus.com`) validates and Azure
+     (already parameterized with `michigan2026.bluegreen.love`) validates and Azure
      issues the managed certificate automatically.
 
 ## Notes

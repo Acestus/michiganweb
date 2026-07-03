@@ -28,7 +28,7 @@ param tags object = {
 ])
 param staticWebAppSku string = 'Free'
 
-@description('Custom domain to attach to the Static Web App, e.g. michigan.acestus.com. Leave empty to skip.')
+@description('Custom domain to attach to the Static Web App, e.g. michigan2026.bluegreen.love. Leave empty to skip.')
 param customDomainName string = ''
 
 var staticWebAppName = 'swa-${projectName}-${environment}-${instanceNumber}'
